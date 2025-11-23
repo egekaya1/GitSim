@@ -13,6 +13,7 @@ from git_sim.cli.formatters.graph import CommitGraphRenderer
 from git_sim.core.exceptions import GitSimError, RefNotFoundError
 from git_sim.core.repository import Repository
 from git_sim.simulation.rebase import RebaseSimulator
+from git_sim.core.models import RebaseSimulation
 
 console = Console()
 
@@ -148,7 +149,7 @@ def rebase_command(
         raise typer.Exit(1)
 
 
-def _render_summary(result, console: Console) -> None:
+def _render_summary(result: RebaseSimulation, console: Console) -> None:
     """Render a summary of the rebase simulation."""
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column("Label", style="bold")
@@ -179,7 +180,7 @@ def _render_summary(result, console: Console) -> None:
     console.print(Panel(table, title="[bold]Rebase Summary[/bold]", border_style="blue"))
 
 
-def _execute_rebase(result, console: Console) -> None:
+def _execute_rebase(result: RebaseSimulation, console: Console) -> None:
     """Prompt and execute the actual rebase."""
     console.print()
 

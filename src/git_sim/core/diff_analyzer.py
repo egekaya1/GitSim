@@ -3,7 +3,7 @@
 import hashlib
 import io
 import re
-from typing import Optional
+from typing import Optional, Match, Any, List, Set, Pattern
 
 from dulwich.objects import Blob, Commit
 from dulwich.patch import write_tree_diff
@@ -23,11 +23,9 @@ class DiffAnalyzer:
     """
 
     # Regex patterns for diff parsing
-    HUNK_HEADER_RE = re.compile(
-        r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)$"
-    )
-    DIFF_HEADER_RE = re.compile(r"^diff --git a/(.*) b/(.*)$")
-    INDEX_RE = re.compile(r"^index ([0-9a-f]+)\.\.([0-9a-f]+)")
+    HUNK_HEADER_RE: Pattern[str] = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)$")
+    DIFF_HEADER_RE: Pattern[str] = re.compile(r"^diff --git a/(.*) b/(.*)$")
+    INDEX_RE: Pattern[str] = re.compile(r"^index ([0-9a-f]+)\.\.([0-9a-f]+)")
 
     def __init__(self, repo: Repo):
         """
@@ -49,17 +47,21 @@ class DiffAnalyzer:
         Returns:
             CommitDiff with parsed file changes and hunks.
         """
-        commit = self._repo[commit_sha.encode()]
-        if not isinstance(commit, Commit):
+        obj = self._repo[commit_sha.encode()]
+        if not isinstance(obj, Commit):
             raise ValueError(f"Not a commit: {commit_sha}")
+        commit: Commit = obj
 
         parent_sha = None
         parent_tree = None
 
         if commit.parents:
             parent_sha = commit.parents[0].decode()
-            parent_commit = self._repo[commit.parents[0]]
-            parent_tree = parent_commit.tree
+            parent_obj = self._repo[commit.parents[0]]
+            if isinstance(parent_obj, Commit):
+                parent_tree = parent_obj.tree
+            else:
+                parent_tree = None
         else:
             parent_tree = None
 
@@ -95,7 +97,7 @@ class DiffAnalyzer:
             line = lines[i]
 
             # Look for diff header
-            match = self.DIFF_HEADER_RE.match(line)
+            match: Optional[Match[str]] = self.DIFF_HEADER_RE.match(line)
             if match:
                 old_path, new_path = match.groups()
                 fc = self._parse_single_file_diff(lines, i, old_path, new_path)
@@ -134,7 +136,7 @@ class DiffAnalyzer:
                 break
 
             # Parse index line
-            idx_match = self.INDEX_RE.match(line)
+            idx_match: Optional[Match[str]] = self.INDEX_RE.match(line)
             if idx_match:
                 old_sha, new_sha = idx_match.groups()
                 i += 1
@@ -155,11 +157,9 @@ class DiffAnalyzer:
                 continue
 
             # Parse hunk header
-            hunk_match = self.HUNK_HEADER_RE.match(line)
+            hunk_match: Optional[Match[str]] = self.HUNK_HEADER_RE.match(line)
             if hunk_match:
-                hunk, hunk_additions, hunk_deletions, end_i = self._parse_hunk(
-                    lines, i, hunk_match
-                )
+                hunk, hunk_additions, hunk_deletions, end_i = self._parse_hunk(lines, i, hunk_match)
                 hunks.append(hunk)
                 additions += hunk_additions
                 deletions += hunk_deletions
@@ -183,7 +183,7 @@ class DiffAnalyzer:
         )
 
     def _parse_hunk(
-        self, lines: list[str], start_idx: int, header_match: re.Match
+        self, lines: list[str], start_idx: int, header_match: Match[str]
     ) -> tuple[DiffHunk, int, int, int]:
         """
         Parse a single hunk from the diff.
@@ -259,15 +259,19 @@ class DiffAnalyzer:
         Returns:
             Hex string of the patch-id hash.
         """
-        commit = self._repo[commit_sha.encode()]
-        if not isinstance(commit, Commit):
+        obj = self._repo[commit_sha.encode()]
+        if not isinstance(obj, Commit):
             return ""
+        commit: Commit = obj
 
         if not commit.parents:
             # Root commits get a unique patch-id based on their content
             return hashlib.sha1(commit_sha.encode()).hexdigest()
 
-        parent_tree = self._repo[commit.parents[0]].tree
+        parent_parent_obj = self._repo[commit.parents[0]]
+        if not isinstance(parent_parent_obj, Commit):
+            return ""
+        parent_tree = parent_parent_obj.tree
 
         # Generate diff
         output = io.BytesIO()
@@ -348,8 +352,9 @@ class DiffAnalyzer:
                     if i == len(parts) - 1:
                         # Last part - should be a blob
                         if isinstance(obj, Blob):
-                            content = obj.data.decode("utf-8", errors="replace")
-                            return content.splitlines(keepends=True)
+                            content: str = obj.data.decode("utf-8", errors="replace")
+                            lines: list[str] = content.splitlines(keepends=True)
+                            return lines
                         return None
                     elif isinstance(obj, Tree):
                         current = obj

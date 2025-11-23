@@ -157,8 +157,7 @@ def diff(
         raise typer.Exit(1)
 
     console.print(
-        f"[bold]Commit:[/bold] [yellow]{commit_info.short_sha}[/yellow] "
-        f"{commit_info.first_line}"
+        f"[bold]Commit:[/bold] [yellow]{commit_info.short_sha}[/yellow] {commit_info.first_line}"
     )
     console.print(f"[bold]Author:[/bold] {commit_info.author}")
     console.print()
@@ -319,7 +318,9 @@ def reset(
         if result.commits_detached:
             console.print("\n[bold red]Commits that will become unreachable:[/bold red]")
             for commit in result.commits_detached[:10]:
-                console.print(f"  [dim]○[/dim] [yellow]{commit.short_sha}[/yellow] {commit.first_line[:50]}")
+                console.print(
+                    f"  [dim]○[/dim] [yellow]{commit.short_sha}[/yellow] {commit.first_line[:50]}"
+                )
             if len(result.commits_detached) > 10:
                 console.print(f"  [dim]... and {len(result.commits_detached) - 10} more[/dim]")
 
@@ -430,7 +431,9 @@ def cherry_pick(
 
 @app.command()
 def explain(
-    command: str = typer.Argument(..., help="Command to explain (rebase, merge, reset, cherry-pick)"),
+    command: str = typer.Argument(
+        ..., help="Command to explain (rebase, merge, reset, cherry-pick)"
+    ),
 ) -> None:
     """
     Get a detailed explanation of how a Git command works.
@@ -608,7 +611,9 @@ def sim(
             graph_renderer.render_comparison(
                 result.before_graph,
                 result.after_graph,
-                highlight_after={c.sha for c in result.commits_created} if result.commits_created else None,
+                highlight_after={c.sha for c in result.commits_created}
+                if result.commits_created
+                else None,
             )
 
     except ValueError as e:

@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from rich.console import Console
+from rich.console import Console, RenderableType
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
@@ -46,9 +46,7 @@ class DiffRenderer:
             show_hunks: If True, show the actual diff content.
             max_hunk_lines: Maximum lines to show per hunk.
         """
-        color, prefix, verb = self.CHANGE_TYPE_STYLES.get(
-            fc.change_type, ("white", "?", "changed")
-        )
+        color, prefix, verb = self.CHANGE_TYPE_STYLES.get(fc.change_type, ("white", "?", "changed"))
 
         # Build title
         if fc.old_path and fc.old_path != fc.path:
@@ -57,21 +55,23 @@ class DiffRenderer:
             title = f"[{color}]{prefix}[/{color}] {fc.path}"
 
         # Build content
+        content_renderable: RenderableType
         if show_hunks and fc.hunks:
-            content = self._format_hunks(fc.hunks, max_hunk_lines)
+            content_renderable = self._format_hunks(fc.hunks, max_hunk_lines)
             panel = Panel(
-                content,
+                content_renderable,
                 title=title,
                 subtitle=f"+{fc.additions} -{fc.deletions}",
                 border_style=color,
             )
         else:
             # Summary only
-            content = Text()
-            content.append(f"File {verb}", style=color)
+            summary = Text()
+            summary.append(f"File {verb}", style=color)
             if fc.additions or fc.deletions:
-                content.append(f" (+{fc.additions} -{fc.deletions})")
-            panel = Panel(content, title=title, border_style=color)
+                summary.append(f" (+{fc.additions} -{fc.deletions})")
+            content_renderable = summary
+            panel = Panel(content_renderable, title=title, border_style=color)
 
         self.console.print(panel)
 
@@ -89,9 +89,10 @@ class DiffRenderer:
             total_lines += 1
 
             # Add hunk lines (with limit)
-            for line in hunk.lines:
+            for idx, line in enumerate(hunk.lines):
                 if total_lines >= max_lines:
-                    lines.append(f"... ({len(hunk.lines) - len(lines) + 1} more lines)")
+                    remaining_in_hunk = len(hunk.lines) - idx
+                    lines.append(f"... ({remaining_in_hunk} more lines)")
                     break
                 lines.append(line)
                 total_lines += 1
@@ -170,9 +171,7 @@ class DiffRenderer:
         for fc in changes:
             if shown >= max_files:
                 remaining = len(changes) - shown
-                self.console.print(
-                    f"\n[dim]... and {remaining} more file(s)[/dim]"
-                )
+                self.console.print(f"\n[dim]... and {remaining} more file(s)[/dim]")
                 break
 
             if fc.hunks:
@@ -183,6 +182,4 @@ class DiffRenderer:
                 color, prefix, verb = self.CHANGE_TYPE_STYLES.get(
                     fc.change_type, ("white", "?", "changed")
                 )
-                self.console.print(
-                    f"  [{color}]{prefix}[/{color}] {fc.path} ({verb})"
-                )
+                self.console.print(f"  [{color}]{prefix}[/{color}] {fc.path} ({verb})")

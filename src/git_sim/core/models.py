@@ -130,9 +130,7 @@ class PotentialConflict:
     description: str
     our_change: Optional[FileChange] = None
     their_change: Optional[FileChange] = None
-    overlapping_ranges: list[tuple[tuple[int, int], tuple[int, int]]] = field(
-        default_factory=list
-    )
+    overlapping_ranges: list[tuple[tuple[int, int], tuple[int, int]]] = field(default_factory=list)
 
     @property
     def is_certain(self) -> bool:
@@ -175,7 +173,7 @@ class CommitGraph:
 
     def get_ancestors(self, sha: str, limit: int = 100) -> list[str]:
         """Get ancestor SHAs in topological order."""
-        ancestors = []
+        ancestors: list[str] = []
         visited = set()
         stack = [sha]
 
@@ -347,7 +345,8 @@ class RebaseSimulation:
             source_ref=self.source_branch,
             target_ref=self.target_branch,
             merge_base_sha=self.merge_base_sha,
-            new_head_sha=self.steps[-1].new_sha if self.steps else "",
+            # new_sha can be Optional[str]; normalize to empty string when None
+            new_head_sha=(self.steps[-1].new_sha or "") if self.steps else "",
             steps=[
                 OperationStep(
                     step_number=i + 1,
@@ -421,13 +420,9 @@ class ResetSimulation:
         """Convert to unified SimulationResult."""
         warnings = []
         if self.commits_detached:
-            warnings.append(
-                f"{len(self.commits_detached)} commit(s) will become unreachable"
-            )
+            warnings.append(f"{len(self.commits_detached)} commit(s) will become unreachable")
         if self.files_discarded:
-            warnings.append(
-                f"{len(self.files_discarded)} file(s) will have changes discarded"
-            )
+            warnings.append(f"{len(self.files_discarded)} file(s) will have changes discarded")
 
         danger = DangerLevel.LOW
         if self.mode == ResetMode.HARD:
@@ -485,10 +480,7 @@ class CherryPickSimulation:
             after_graph=self.after_graph,
             conflicts=self.conflicts,
             commits_affected=self.commits_to_pick,
-            commits_created=[
-                s.commit_info for s in self.steps
-                if s.commit_info and s.new_sha
-            ],
+            commits_created=[s.commit_info for s in self.steps if s.commit_info and s.new_sha],
             target_ref=self.target_branch,
             steps=self.steps,
         )

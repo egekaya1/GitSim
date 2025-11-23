@@ -76,28 +76,18 @@ class ResetSimulator(BaseSimulator[ResetSimulation]):
             return errors, warnings
 
         # Count commits that will become unreachable
-        commits_to_lose = self._count_commits_between(
-            target_commit.sha, current_commit.sha
-        )
+        commits_to_lose = self._count_commits_between(target_commit.sha, current_commit.sha)
 
         if commits_to_lose > 0:
-            warnings.append(
-                f"{commits_to_lose} commit(s) will become unreachable"
-            )
+            warnings.append(f"{commits_to_lose} commit(s) will become unreachable")
 
         # Mode-specific warnings
         if self.mode == ResetMode.HARD:
-            warnings.append(
-                "HARD reset: All uncommitted changes will be lost!"
-            )
+            warnings.append("HARD reset: All uncommitted changes will be lost!")
         elif self.mode == ResetMode.MIXED:
-            warnings.append(
-                "MIXED reset: Changes will be unstaged but kept in working directory"
-            )
+            warnings.append("MIXED reset: Changes will be unstaged but kept in working directory")
         elif self.mode == ResetMode.SOFT:
-            warnings.append(
-                "SOFT reset: Changes will remain staged"
-            )
+            warnings.append("SOFT reset: Changes will remain staged")
 
         return errors, warnings
 
@@ -119,9 +109,7 @@ class ResetSimulator(BaseSimulator[ResetSimulation]):
         target_commit = self.repo.get_commit(self.target)
 
         # Find commits that will become detached
-        commits_detached = self._find_detached_commits(
-            target_commit.sha, current_commit.sha
-        )
+        commits_detached = self._find_detached_commits(target_commit.sha, current_commit.sha)
 
         # Determine affected files based on mode
         files_unstaged: list[str] = []
@@ -161,9 +149,7 @@ class ResetSimulator(BaseSimulator[ResetSimulation]):
             count += 1
         return count
 
-    def _find_detached_commits(
-        self, target_sha: str, current_sha: str
-    ) -> list[CommitInfo]:
+    def _find_detached_commits(self, target_sha: str, current_sha: str) -> list[CommitInfo]:
         """Find commits that will become unreachable after reset."""
         if target_sha == current_sha:
             return []

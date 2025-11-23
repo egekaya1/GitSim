@@ -37,9 +37,7 @@ class ConflictRenderer:
         Args:
             conflict: PotentialConflict to render.
         """
-        style, icon, label = self.SEVERITY_STYLES.get(
-            conflict.severity, ("white", "? ", "UNKNOWN")
-        )
+        style, icon, label = self.SEVERITY_STYLES.get(conflict.severity, ("white", "? ", "UNKNOWN"))
 
         # Build content
         content = Text()
@@ -129,9 +127,7 @@ class ConflictRenderer:
             summary_parts.append(f"[yellow]{likely_count} likely[/yellow]")
 
         if summary_parts:
-            self.console.print(
-                f"\nTotal: {', '.join(summary_parts)} conflict(s) predicted"
-            )
+            self.console.print(f"\nTotal: {', '.join(summary_parts)} conflict(s) predicted")
 
     def render_step_conflicts(
         self,
@@ -247,8 +243,7 @@ class ConflictRenderer:
         delete_modify = [c for c in conflicts if "deleted" in c.description.lower()]
         rename_conflicts = [c for c in conflicts if "renamed" in c.description.lower()]
         content_conflicts = [
-            c for c in conflicts
-            if c not in delete_modify and c not in rename_conflicts
+            c for c in conflicts if c not in delete_modify and c not in rename_conflicts
         ]
 
         if delete_modify:

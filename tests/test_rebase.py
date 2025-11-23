@@ -188,7 +188,7 @@ class TestRebaseSimulatorRun:
             pass  # May fail for other reasons
 
         # Check warnings were recorded
-        # (validation is run even if simulation fails)
+        assert any("same commit" in w.lower() for w in simulator.warnings), "Expected same commit warning to be preserved"
 
 
 class TestConflictPrediction:

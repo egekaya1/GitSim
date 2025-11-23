@@ -1,5 +1,7 @@
 """Main Textual TUI application for git-sim."""
 
+from typing import Any
+
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, Vertical
@@ -17,7 +19,7 @@ from textual.widgets import (
     TabPane,
 )
 
-from git_sim.core.models import OperationType, SimulationResult
+from git_sim.core.models import OperationType, SimulationResult, CommitGraph
 from git_sim.core.repository import Repository
 from git_sim.simulation.dispatcher import SimulationDispatcher
 
@@ -25,7 +27,7 @@ from git_sim.simulation.dispatcher import SimulationDispatcher
 class CommitGraphWidget(Static):
     """Widget to display commit graph."""
 
-    def __init__(self, content: str = "", **kwargs):
+    def __init__(self, content: str = "", **kwargs: Any) -> None:
         super().__init__(content, **kwargs)
 
     def update_graph(self, content: str) -> None:
@@ -46,7 +48,9 @@ class ConflictListWidget(ListView):
         for conflict in result.conflicts:
             severity_style = "red" if conflict.is_certain else "yellow"
             item = ListItem(
-                Label(f"[{severity_style}]{conflict.path}[/{severity_style}]: {conflict.description[:50]}")
+                Label(
+                    f"[{severity_style}]{conflict.path}[/{severity_style}]: {conflict.description[:50]}"
+                )
             )
             self.append(item)
 
@@ -58,7 +62,7 @@ class SimulationPanel(Static):
         yield Static("Run a simulation to see results", id="sim-placeholder")
 
 
-class GitSimApp(App):
+class GitSimApp(App[None]):  # Provide concrete generic parameter for mypy
     """Main TUI application for git-sim."""
 
     TITLE = "Git-Sim TUI"
@@ -142,10 +146,10 @@ class GitSimApp(App):
         Binding("?", "help", "Help"),
     ]
 
-    def __init__(self, repo_path: str = "."):
+    def __init__(self, repo_path: str = ".") -> None:
         super().__init__()
         self.repo_path = repo_path
-        self._dispatcher = None
+        self._dispatcher: SimulationDispatcher | None = None
         self._current_result: SimulationResult | None = None
 
     @property
@@ -217,7 +221,7 @@ class GitSimApp(App):
     def update_display(self, result: SimulationResult) -> None:
         """Update all display panels with simulation result."""
         # Update summary
-        summary_lines = [
+        summary_lines: list[str] = [
             f"[bold]Operation:[/bold] {result.operation_type.name}",
             f"[bold]Status:[/bold] {'[green]Clean[/green]' if result.success else '[red]Has conflicts[/red]'}",
         ]
@@ -233,8 +237,12 @@ class GitSimApp(App):
         self.query_one("#summary-panel", Static).update("\n".join(summary_lines))
 
         # Update graphs
-        before_text = self._format_graph(result.before_graph) if result.before_graph.commits else "No commits"
-        after_text = self._format_graph(result.after_graph) if result.after_graph.commits else "No commits"
+        before_text = (
+            self._format_graph(result.before_graph) if result.before_graph.commits else "No commits"
+        )
+        after_text = (
+            self._format_graph(result.after_graph) if result.after_graph.commits else "No commits"
+        )
 
         self.query_one("#graph-before", CommitGraphWidget).update_graph(before_text)
         self.query_one("#graph-after", CommitGraphWidget).update_graph(after_text)
@@ -249,27 +257,24 @@ class GitSimApp(App):
         else:
             self.notify(f"Simulation found {result.conflict_count} conflict(s)", severity="warning")
 
-    def _format_graph(self, graph) -> str:
+    def _format_graph(self, graph: CommitGraph) -> str:
         """Format commit graph for display."""
-        lines = []
+        lines: list[str] = []
         # Simple topological display
-        sorted_commits = sorted(
+        sorted_commits: list[CommitGraph.commits.__class__] = sorted(  # type: ignore[misc]
             graph.commits.values(),
             key=lambda c: c.timestamp,
             reverse=True,
         )[:15]
 
-        for commit in sorted_commits:
-            branch_labels = [
-                name for name, sha in graph.branch_tips.items()
-                if sha == commit.sha
+        for commit in sorted_commits:  # type: ignore[assignment]
+            branch_labels: list[str] = [
+                name for name, sha in graph.branch_tips.items() if sha == commit.sha
             ]
             label_str = f" ({', '.join(branch_labels)})" if branch_labels else ""
             head_marker = " <- HEAD" if commit.sha == graph.head_sha else ""
 
-            lines.append(
-                f"* {commit.short_sha}{label_str}{head_marker} {commit.first_line[:40]}"
-            )
+            lines.append(f"* {commit.short_sha}{label_str}{head_marker} {commit.first_line[:40]}")
 
         return "\n".join(lines) if lines else "No commits to display"
 
@@ -281,7 +286,9 @@ class GitSimApp(App):
         """Show explanation for current operation."""
         if self._current_result:
             op_name = self._current_result.operation_type.name.lower()
-            self.notify(f"Use 'git-sim explain {op_name}' for detailed explanation", severity="information")
+            self.notify(
+                f"Use 'git-sim explain {op_name}' for detailed explanation", severity="information"
+            )
         else:
             self.notify("Run a simulation first", severity="warning")
 

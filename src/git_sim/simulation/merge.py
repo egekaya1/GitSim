@@ -90,26 +90,25 @@ class MergeSimulator(BaseSimulator[MergeSimulation]):
         # Find merge base
         merge_base = self.repo.find_merge_base(self.source, self.target)
         if merge_base is None:
-            errors.append(
-                f"No common ancestor found between '{self.source}' and '{self.target}'"
-            )
+            errors.append(f"No common ancestor found between '{self.source}' and '{self.target}'")
             return errors, warnings
 
         # Check for fast-forward possibility
         if merge_base == target_commit.sha:
             if self.no_ff:
                 warnings.append(
-                    "Fast-forward is possible, but --no-ff specified; "
-                    "merge commit will be created"
+                    "Fast-forward is possible, but --no-ff specified; merge commit will be created"
                 )
             else:
                 warnings.append("This will be a fast-forward merge")
+        else:
+            # Not fast-forwardable; still surface --no-ff intent for user clarity
+            if self.no_ff:
+                warnings.append("--no-ff specified (merge commit will be created)")
 
         # Check if already merged
         if merge_base == source_commit.sha:
-            warnings.append(
-                f"'{self.source}' is already merged into '{self.target}'"
-            )
+            warnings.append(f"'{self.source}' is already merged into '{self.target}'")
 
         return errors, warnings
 
@@ -149,16 +148,12 @@ class MergeSimulator(BaseSimulator[MergeSimulation]):
         )
 
         # Find files that merge cleanly
-        files_merged_cleanly = self._find_clean_merges(
-            source_changes, target_changes, conflicts
-        )
+        files_merged_cleanly = self._find_clean_merges(source_changes, target_changes, conflicts)
 
         # Generate simulated merge commit SHA
         merge_commit_sha = ""
         if not is_fast_forward:
-            merge_commit_sha = self._generate_merge_commit_sha(
-                source_commit.sha, target_commit.sha
-            )
+            merge_commit_sha = self._generate_merge_commit_sha(source_commit.sha, target_commit.sha)
 
         # Build graphs
         before_graph = self._build_before_graph(source_commit.sha, target_commit.sha)

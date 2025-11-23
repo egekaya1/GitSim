@@ -1,7 +1,7 @@
 """Cherry-pick simulation engine."""
 
 import hashlib
-from typing import Optional
+from typing import Optional, List
 
 from dulwich.repo import Repo as DulwichRepo
 
@@ -12,6 +12,7 @@ from git_sim.core.models import (
     CommitInfo,
     OperationStep,
     PotentialConflict,
+    FileChange,
 )
 from git_sim.core.repository import Repository
 from git_sim.simulation.base import BaseSimulator
@@ -104,9 +105,7 @@ class CherryPickSimulator(BaseSimulator[CherryPickSimulation]):
 
         for commit in resolved_commits:
             if commit.sha in target_history:
-                warnings.append(
-                    f"Commit {commit.short_sha} is already in target history"
-                )
+                warnings.append(f"Commit {commit.short_sha} is already in target history")
 
         # Check for merge commits
         for commit in resolved_commits:
@@ -184,7 +183,7 @@ class CherryPickSimulator(BaseSimulator[CherryPickSimulation]):
             after_graph=after_graph,
         )
 
-    def _get_recent_changes(self, from_sha: str, depth: int = 10):
+    def _get_recent_changes(self, from_sha: str, depth: int = 10) -> list[FileChange]:
         """Get file changes from recent commits."""
         from git_sim.core.models import FileChange
 
@@ -198,7 +197,7 @@ class CherryPickSimulator(BaseSimulator[CherryPickSimulation]):
         self,
         commit: CommitInfo,
         current_head: str,
-        accumulated_changes,
+        accumulated_changes: list[FileChange],
         step_number: int,
     ) -> OperationStep:
         """Simulate picking a single commit."""
@@ -224,9 +223,7 @@ class CherryPickSimulator(BaseSimulator[CherryPickSimulation]):
             description=f"Cherry-pick {commit.short_sha}: {commit.first_line[:40]}",
         )
 
-    def _generate_picked_sha(
-        self, original_sha: str, onto_sha: str, step: int
-    ) -> str:
+    def _generate_picked_sha(self, original_sha: str, onto_sha: str, step: int) -> str:
         """Generate a fake SHA for the cherry-picked commit."""
         data = f"cherry-pick:{original_sha}:{onto_sha}:{step}".encode()
         return hashlib.sha1(data).hexdigest()

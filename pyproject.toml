@@ -16,13 +16,22 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Version Control :: Git",
+    "Framework :: Textual",
+    "Typing :: Typed",
 ]
 dependencies = [
     "dulwich>=0.21.0",
     "rich>=13.0.0",
     "typer>=0.9.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/egekaya1/GitSim"
+Repository = "https://github.com/egekaya1/GitSim"
+Issues = "https://github.com/egekaya1/GitSim/issues"
+Documentation = "https://github.com/egekaya1/GitSim#readme"
 
 [project.optional-dependencies]
 dev = [
@@ -40,6 +49,8 @@ all = [
 
 [project.scripts]
 git-sim = "git_sim.cli.main:app"
+gitsim = "git_sim.cli.main:app"
+
 
 # Plugin entry points - external plugins register here
 # Example: [project.entry-points."git_sim.plugins"]

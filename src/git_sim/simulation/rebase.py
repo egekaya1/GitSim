@@ -102,23 +102,19 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
         # Find merge base
         merge_base = self.repo.find_merge_base(self.source, self.onto)
         if merge_base is None:
-            errors.append(
-                f"No common ancestor found between '{self.source}' and '{self.onto}'"
-            )
+            errors.append(f"No common ancestor found between '{self.source}' and '{self.onto}'")
             return errors, warnings
 
         # Check if source is already based on onto
         if merge_base == onto_commit.sha:
             warnings.append(
-                f"'{self.source}' is already based on '{self.onto}'; "
-                f"rebase would have no effect"
+                f"'{self.source}' is already based on '{self.onto}'; rebase would have no effect"
             )
 
         # Check if onto is ancestor of source (fast-forward possible)
         if merge_base == source_commit.sha:
             warnings.append(
-                f"'{self.onto}' is ahead of '{self.source}'; "
-                f"consider 'git reset' instead of rebase"
+                f"'{self.onto}' is ahead of '{self.source}'; consider 'git reset' instead of rebase"
             )
 
         return errors, warnings
@@ -183,9 +179,7 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
             after_graph=after_graph,
         )
 
-    def _collect_commits_to_replay(
-        self, merge_base_sha: str, source_sha: str
-    ) -> list[CommitInfo]:
+    def _collect_commits_to_replay(self, merge_base_sha: str, source_sha: str) -> list[CommitInfo]:
         """
         Collect commits that will be replayed during rebase.
 
@@ -202,9 +196,7 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
         commits.reverse()
         return commits
 
-    def _collect_onto_patch_ids(
-        self, merge_base_sha: str, onto_sha: str
-    ) -> set[str]:
+    def _collect_onto_patch_ids(self, merge_base_sha: str, onto_sha: str) -> set[str]:
         """
         Collect patch-ids from the onto branch for duplicate detection.
 
@@ -215,9 +207,7 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
             self.repo, include=[onto_sha], exclude=[merge_base_sha]
         )
 
-    def _collect_accumulated_changes(
-        self, merge_base_sha: str, onto_sha: str
-    ) -> list[FileChange]:
+    def _collect_accumulated_changes(self, merge_base_sha: str, onto_sha: str) -> list[FileChange]:
         """
         Collect all file changes made on the onto branch since merge-base.
 
@@ -225,9 +215,7 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
         """
         all_changes: list[FileChange] = []
 
-        for commit in self.repo.walk_commits(
-            include=[onto_sha], exclude=[merge_base_sha]
-        ):
+        for commit in self.repo.walk_commits(include=[onto_sha], exclude=[merge_base_sha]):
             changes = self.repo.get_commit_changes(commit.sha)
             all_changes.extend(changes)
 
@@ -289,9 +277,7 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
 
         return steps
 
-    def _generate_simulated_sha(
-        self, commit: CommitInfo, onto_sha: str, step_index: int
-    ) -> str:
+    def _generate_simulated_sha(self, commit: CommitInfo, onto_sha: str, step_index: int) -> str:
         """
         Generate a fake SHA for the rebased commit.
 
@@ -305,9 +291,7 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
         """Build the commit graph showing state before rebase."""
         return self.repo.build_graph([source_sha, onto_sha], max_commits=30)
 
-    def _build_after_graph(
-        self, steps: list[RebaseStep], onto_commit: CommitInfo
-    ) -> CommitGraph:
+    def _build_after_graph(self, steps: list[RebaseStep], onto_commit: CommitInfo) -> CommitGraph:
         """
         Build a simulated commit graph showing state after rebase.
 

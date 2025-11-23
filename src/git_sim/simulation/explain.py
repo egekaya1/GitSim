@@ -199,11 +199,13 @@ class ExplainRenderer:
             return
 
         # Summary
-        self.console.print(Panel(
-            explanation.summary,
-            title=f"[bold blue]git {operation.name.lower()}[/bold blue]",
-            border_style="blue",
-        ))
+        self.console.print(
+            Panel(
+                explanation.summary,
+                title=f"[bold blue]git {operation.name.lower()}[/bold blue]",
+                border_style="blue",
+            )
+        )
 
         # How it works
         self.console.print("\n[bold]How it works:[/bold]")
@@ -252,9 +254,7 @@ class ExplainRenderer:
             DangerLevel.CRITICAL: ("red bold", "CRITICAL", "💀"),
         }
 
-        style, label, icon = level_styles.get(
-            safety_info.danger_level, ("white", "UNKNOWN", "?")
-        )
+        style, label, icon = level_styles.get(safety_info.danger_level, ("white", "UNKNOWN", "?"))
 
         # Build content
         content = Table(show_header=False, box=None, padding=(0, 2))
@@ -262,10 +262,12 @@ class ExplainRenderer:
         content.add_column("Value")
 
         content.add_row("Danger Level", f"[{style}]{icon} {label}[/{style}]")
-        content.add_row("Reversible", "[green]Yes[/green]" if safety_info.reversible else "[red]No[/red]")
+        content.add_row(
+            "Reversible", "[green]Yes[/green]" if safety_info.reversible else "[red]No[/red]"
+        )
         content.add_row(
             "Force Push Required",
-            "[yellow]Yes[/yellow]" if safety_info.requires_force_push else "[green]No[/green]"
+            "[yellow]Yes[/yellow]" if safety_info.requires_force_push else "[green]No[/green]",
         )
 
         self.console.print(Panel(content, title="[bold]Safety Analysis[/bold]", border_style=style))

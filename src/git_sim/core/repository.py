@@ -1,10 +1,10 @@
 """Repository wrapper providing a clean read-only API over Dulwich."""
 
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Iterable
 
 from dulwich.diff_tree import TreeChange, tree_changes
-from dulwich.objects import Commit, Tree
+from dulwich.objects import Commit, Tree, TreeEntry
 from dulwich.repo import Repo
 from dulwich.walk import Walker
 
@@ -30,9 +30,10 @@ class Repository:
         Raises:
             NotARepositoryError: If path is not within a Git repository.
         """
-        self.path = Path(path).resolve()
+        # Use absolute path without resolving symlinks to keep test path equality stable
+        self.path = Path(path).absolute()
         try:
-            self._repo = Repo(str(self.path))
+            self._repo: Repo = Repo(str(self.path))
         except Exception as e:
             raise NotARepositoryError(f"Not a Git repository: {self.path}") from e
 
@@ -113,9 +114,10 @@ class Repository:
 
         i = 4  # Skip "HEAD"
         while i < len(ref):
-            commit = self._repo[current]
-            if not isinstance(commit, Commit):
+            obj = self._repo[current]
+            if not isinstance(obj, Commit):
                 raise RefNotFoundError(ref)
+            commit: Commit = obj
 
             if ref[i] == "~":
                 # ~N means N-th first parent
@@ -129,7 +131,10 @@ class Repository:
                     if not commit.parents:
                         raise RefNotFoundError(ref)
                     current = commit.parents[0]
-                    commit = self._repo[current]
+                    parent_obj = self._repo[current]
+                    if not isinstance(parent_obj, Commit):
+                        raise RefNotFoundError(ref)
+                    commit = parent_obj
             elif ref[i] == "^":
                 # ^N means N-th parent
                 i += 1
@@ -166,9 +171,7 @@ class Repository:
             parent_shas=tuple(
                 p.decode() if isinstance(p, bytes) else str(p) for p in commit.parents
             ),
-            tree_sha=(
-                commit.tree.decode() if isinstance(commit.tree, bytes) else str(commit.tree)
-            ),
+            tree_sha=(commit.tree.decode() if isinstance(commit.tree, bytes) else str(commit.tree)),
         )
 
     def get_commit(self, ref_or_sha: str) -> CommitInfo:
@@ -212,11 +215,11 @@ class Repository:
         include_shas = [self._resolve_ref(r) for r in include]
         exclude_shas = [self._resolve_ref(r) for r in (exclude or [])]
 
-        walker = Walker(
+        walker: Walker = Walker(
             self._repo.object_store,
             include=include_shas,
             exclude=exclude_shas,
-            order=order,  # type: ignore
+            order=order,
             max_entries=max_entries,
         )
 
@@ -235,7 +238,9 @@ class Repository:
         """
         branches = []
 
-        for ref_name, sha in self._repo.refs.items():
+        # Dulwich refs container does not expose items(); iterate over keys directly
+        for ref_name in self._repo.refs.keys():
+            sha = self._repo.refs[ref_name]
             ref_str = ref_name.decode() if isinstance(ref_name, bytes) else ref_name
             sha_str = sha.decode() if isinstance(sha, bytes) else str(sha)
 
@@ -300,47 +305,56 @@ class Repository:
 
     def _tree_change_to_file_change(self, change: TreeChange) -> FileChange:
         """Convert a Dulwich TreeChange to FileChange."""
+        old_entry = change.old
+        new_entry = change.new
+        # Safely access entry attributes (TreeChange entries may be optional in type hints)
         if change.type == "add":
+            path = new_entry.path.decode() if new_entry and new_entry.path else ""
             return FileChange(
-                path=change.new.path.decode(),
+                path=path,
                 change_type=ChangeType.ADD,
-                new_mode=change.new.mode,
-                new_sha=change.new.sha.decode() if change.new.sha else None,
+                new_mode=new_entry.mode if new_entry else None,
+                new_sha=new_entry.sha.decode() if new_entry and new_entry.sha else None,
             )
-        elif change.type == "delete":
+        if change.type == "delete":
+            path = old_entry.path.decode() if old_entry and old_entry.path else ""
             return FileChange(
-                path=change.old.path.decode(),
+                path=path,
                 change_type=ChangeType.DELETE,
-                old_mode=change.old.mode,
-                old_sha=change.old.sha.decode() if change.old.sha else None,
+                old_mode=old_entry.mode if old_entry else None,
+                old_sha=old_entry.sha.decode() if old_entry and old_entry.sha else None,
             )
-        elif change.type == "modify":
+        if change.type == "modify":
+            path = new_entry.path.decode() if new_entry and new_entry.path else ""
             return FileChange(
-                path=change.new.path.decode(),
+                path=path,
                 change_type=ChangeType.MODIFY,
-                old_mode=change.old.mode,
-                new_mode=change.new.mode,
-                old_sha=change.old.sha.decode() if change.old.sha else None,
-                new_sha=change.new.sha.decode() if change.new.sha else None,
+                old_mode=old_entry.mode if old_entry else None,
+                new_mode=new_entry.mode if new_entry else None,
+                old_sha=old_entry.sha.decode() if old_entry and old_entry.sha else None,
+                new_sha=new_entry.sha.decode() if new_entry and new_entry.sha else None,
             )
-        elif change.type == "rename":
+        if change.type == "rename":
+            path_new = new_entry.path.decode() if new_entry and new_entry.path else ""
+            path_old = old_entry.path.decode() if old_entry and old_entry.path else ""
             return FileChange(
-                path=change.new.path.decode(),
+                path=path_new,
                 change_type=ChangeType.RENAME,
-                old_path=change.old.path.decode(),
-                old_mode=change.old.mode,
-                new_mode=change.new.mode,
-                old_sha=change.old.sha.decode() if change.old.sha else None,
-                new_sha=change.new.sha.decode() if change.new.sha else None,
+                old_path=path_old,
+                old_mode=old_entry.mode if old_entry else None,
+                new_mode=new_entry.mode if new_entry else None,
+                old_sha=old_entry.sha.decode() if old_entry and old_entry.sha else None,
+                new_sha=new_entry.sha.decode() if new_entry and new_entry.sha else None,
             )
-        else:  # copy
-            return FileChange(
-                path=change.new.path.decode(),
-                change_type=ChangeType.COPY,
-                old_path=change.old.path.decode() if change.old else None,
-                new_mode=change.new.mode,
-                new_sha=change.new.sha.decode() if change.new.sha else None,
-            )
+        # copy
+        path = new_entry.path.decode() if new_entry and new_entry.path else ""
+        return FileChange(
+            path=path,
+            change_type=ChangeType.COPY,
+            old_path=old_entry.path.decode() if old_entry and old_entry.path else None,
+            new_mode=new_entry.mode if new_entry else None,
+            new_sha=new_entry.sha.decode() if new_entry and new_entry.sha else None,
+        )
 
     def get_tree_changes(self, old_tree_sha: str, new_tree_sha: str) -> list[FileChange]:
         """
@@ -356,7 +370,7 @@ class Repository:
         old_sha = old_tree_sha.encode() if old_tree_sha else None
         new_sha = new_tree_sha.encode()
 
-        changes = tree_changes(
+        changes: Iterable[TreeChange] = tree_changes(
             self._repo.object_store,
             old_sha,
             new_sha,
@@ -395,23 +409,30 @@ class Repository:
         Returns:
             File content as bytes, or None if file doesn't exist.
         """
-        tree = self._repo[tree_sha.encode()]
-        if not isinstance(tree, Tree):
+        tree_obj = self._repo[tree_sha.encode()]
+        tree: Tree
+        if isinstance(tree_obj, Tree):
+            tree = tree_obj
+        else:
             return None
 
         parts = path.split("/")
-        current = tree
+        current: Tree = tree
 
         for i, part in enumerate(parts):
             part_bytes = part.encode()
             found = False
             for entry in current.items():
+                if entry is None:
+                    continue
+                if not isinstance(entry, TreeEntry):  # Narrow type for mypy
+                    continue
                 if entry.path == part_bytes:
                     obj = self._repo[entry.sha]
                     if i == len(parts) - 1:
                         # Last part - should be a blob
                         return obj.data if hasattr(obj, "data") else None
-                    elif isinstance(obj, Tree):
+                    if isinstance(obj, Tree):
                         current = obj
                         found = True
                         break

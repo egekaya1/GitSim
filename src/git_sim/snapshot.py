@@ -8,7 +8,7 @@ import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from git_sim.core.repository import Repository
 
@@ -25,12 +25,12 @@ class Snapshot:
     description: str = ""
     tags: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Snapshot":
+    def from_dict(cls, data: dict[str, Any]) -> "Snapshot":
         """Create from dictionary."""
         return cls(**data)
 
@@ -243,36 +243,84 @@ class SnapshotManager:
             return False, f"Bundle file missing for snapshot: {snapshot_id}"
 
         try:
+            # Fetch refs from bundle to restore branch tips if missing
+            # (Safe to ignore errors if refs already present)
+            subprocess.run(
+                ["git", "fetch", str(bundle_path)],
+                cwd=self.repo_path,
+                capture_output=True,
+                check=False,
+            )
+
             if mode == "hard":
-                # Hard reset to the snapshot state
+                # Hard restore: ensure branch exists (create/update if necessary), then hard reset
+                if snapshot.head_branch:
+                    # Create or update branch ref to the snapshot commit
+                    subprocess.run(
+                        ["git", "branch", "-f", snapshot.head_branch, snapshot.head_sha],
+                        cwd=self.repo_path,
+                        capture_output=True,
+                        check=False,
+                    )
+                    subprocess.run(
+                        ["git", "checkout", snapshot.head_branch],
+                        cwd=self.repo_path,
+                        capture_output=True,
+                        check=True,
+                    )
+                else:
+                    subprocess.run(
+                        ["git", "checkout", snapshot.head_sha],
+                        cwd=self.repo_path,
+                        capture_output=True,
+                        check=True,
+                    )
+
                 subprocess.run(
                     ["git", "reset", "--hard", snapshot.head_sha],
                     cwd=self.repo_path,
                     capture_output=True,
                     check=True,
                 )
-
-                # Checkout the branch if it existed
-                if snapshot.head_branch:
-                    subprocess.run(
-                        ["git", "checkout", snapshot.head_branch],
-                        cwd=self.repo_path,
-                        capture_output=True,
-                        check=False,  # Might fail if branch doesn't exist
-                    )
-
-                return True, f"Restored to snapshot '{snapshot.name}' (hard)"
-
-            else:  # soft
-                # Just checkout the commit
+                # Remove untracked files to fully restore working tree
                 subprocess.run(
-                    ["git", "checkout", snapshot.head_sha],
+                    ["git", "clean", "-fd"],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    check=False,
+                )
+                return True, f"Restored to snapshot '{snapshot.name}' (hard reset)"
+
+            # Soft restore: move HEAD only; preserve index & working tree
+            if snapshot.head_branch:
+                # Ensure branch points to snapshot commit then checkout
+                subprocess.run(
+                    ["git", "branch", "-f", snapshot.head_branch, snapshot.head_sha],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    check=False,
+                )
+                subprocess.run(
+                    ["git", "checkout", snapshot.head_branch],
                     cwd=self.repo_path,
                     capture_output=True,
                     check=True,
                 )
-
-                return True, f"Checked out snapshot '{snapshot.name}' (soft/detached HEAD)"
+                subprocess.run(
+                    ["git", "reset", "--soft", snapshot.head_sha],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    check=True,
+                )
+            else:
+                # Detached HEAD scenario: just soft reset
+                subprocess.run(
+                    ["git", "reset", "--soft", snapshot.head_sha],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    check=True,
+                )
+            return True, f"Restored to snapshot '{snapshot.name}' (soft)"
 
         except subprocess.CalledProcessError as e:
             return False, f"Failed to restore: {e.stderr.decode() if e.stderr else str(e)}"

@@ -68,9 +68,7 @@ class ConflictDetector:
                 conflicts.append(conflict)
 
         # Check for delete/modify conflicts
-        conflicts.extend(
-            self._detect_delete_modify_conflicts(our_changes, their_changes)
-        )
+        conflicts.extend(self._detect_delete_modify_conflicts(our_changes, their_changes))
 
         # Check for rename conflicts
         conflicts.extend(
@@ -99,10 +97,7 @@ class ConflictDetector:
             PotentialConflict if conflict detected, None otherwise.
         """
         # Both delete - no conflict
-        if (
-            our_fc.change_type == ChangeType.DELETE
-            and their_fc.change_type == ChangeType.DELETE
-        ):
+        if our_fc.change_type == ChangeType.DELETE and their_fc.change_type == ChangeType.DELETE:
             return None
 
         # Both add with identical content - no conflict
@@ -114,10 +109,7 @@ class ConflictDetector:
             return None
 
         # Both add with different content - certain conflict
-        if (
-            our_fc.change_type == ChangeType.ADD
-            and their_fc.change_type == ChangeType.ADD
-        ):
+        if our_fc.change_type == ChangeType.ADD and their_fc.change_type == ChangeType.ADD:
             return PotentialConflict(
                 path=path,
                 severity=ConflictSeverity.CERTAIN,
@@ -125,6 +117,14 @@ class ConflictDetector:
                 our_change=our_fc,
                 their_change=their_fc,
             )
+
+        # One side deletes while the other modifies/adds - handled by specialized detector
+        # Skip generic analysis here to avoid duplicate conflicts.
+        if (
+            (our_fc.change_type == ChangeType.DELETE and their_fc.change_type in (ChangeType.MODIFY, ChangeType.ADD))
+            or (their_fc.change_type == ChangeType.DELETE and our_fc.change_type in (ChangeType.MODIFY, ChangeType.ADD))
+        ):
+            return None
 
         # One adds, one modifies - file already exists conflict
         if our_fc.change_type == ChangeType.ADD or their_fc.change_type == ChangeType.ADD:
@@ -196,9 +196,7 @@ class ConflictDetector:
                     our_start <= their_end + self.ADJACENCY_THRESHOLD
                     and their_start <= our_end + self.ADJACENCY_THRESHOLD
                 ):
-                    overlaps.append(
-                        ((our_start, our_end), (their_start, their_end))
-                    )
+                    overlaps.append(((our_start, our_end), (their_start, their_end)))
 
         return overlaps
 
@@ -272,9 +270,7 @@ class ConflictDetector:
         """Detect when one side deletes a file the other modifies."""
         conflicts: list[PotentialConflict] = []
 
-        our_deleted = {
-            fc.path: fc for fc in our_changes if fc.change_type == ChangeType.DELETE
-        }
+        our_deleted = {fc.path: fc for fc in our_changes if fc.change_type == ChangeType.DELETE}
         their_modified = {
             fc.path: fc
             for fc in their_changes
@@ -294,9 +290,7 @@ class ConflictDetector:
             )
 
         # Their deletes vs our modifies
-        their_deleted = {
-            fc.path: fc for fc in their_changes if fc.change_type == ChangeType.DELETE
-        }
+        their_deleted = {fc.path: fc for fc in their_changes if fc.change_type == ChangeType.DELETE}
         our_modified = {
             fc.path: fc
             for fc in our_changes
@@ -352,16 +346,12 @@ class ConflictDetector:
             if fc.change_type == ChangeType.RENAME and fc.old_path
         }
         their_modifies_paths = {
-            fc.path
-            for fc in their_changes
-            if fc.change_type == ChangeType.MODIFY
+            fc.path for fc in their_changes if fc.change_type == ChangeType.MODIFY
         }
 
         for old_path, our_fc in our_renames.items():
             if old_path in their_modifies_paths:
-                their_fc = next(
-                    fc for fc in their_changes if fc.path == old_path
-                )
+                their_fc = next(fc for fc in their_changes if fc.path == old_path)
                 conflicts.append(
                     PotentialConflict(
                         path=old_path,
@@ -381,9 +371,7 @@ class ConflictDetector:
             for fc in their_changes
             if fc.change_type == ChangeType.RENAME and fc.old_path
         }
-        our_modifies_paths = {
-            fc.path for fc in our_changes if fc.change_type == ChangeType.MODIFY
-        }
+        our_modifies_paths = {fc.path for fc in our_changes if fc.change_type == ChangeType.MODIFY}
 
         for old_path, their_fc in their_renames.items():
             if old_path in our_modifies_paths:
@@ -403,9 +391,7 @@ class ConflictDetector:
 
         return conflicts
 
-    def estimate_conflict_difficulty(
-        self, conflict: PotentialConflict
-    ) -> str:
+    def estimate_conflict_difficulty(self, conflict: PotentialConflict) -> str:
         """
         Estimate how difficult a conflict will be to resolve.
 
@@ -419,8 +405,7 @@ class ConflictDetector:
             return "Moderate - requires decision on file-level action"
 
         total_overlap_lines = sum(
-            max(our[1] - our[0], their[1] - their[0])
-            for our, their in conflict.overlapping_ranges
+            max(our[1] - our[0], their[1] - their[0]) for our, their in conflict.overlapping_ranges
         )
 
         if total_overlap_lines <= 5:

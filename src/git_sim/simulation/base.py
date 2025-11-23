@@ -68,9 +68,7 @@ class BaseSimulator(ABC, Generic[T]):
         self._validation_warnings = warnings
 
         if errors:
-            raise SimulationError(
-                f"Validation failed: {'; '.join(errors)}"
-            )
+            raise SimulationError(f"Validation failed: {'; '.join(errors)}")
 
         self._validated = True
         return self.simulate()

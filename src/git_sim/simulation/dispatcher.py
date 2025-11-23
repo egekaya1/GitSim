@@ -1,7 +1,7 @@
 """Unified command simulation dispatcher."""
 
 from dataclasses import dataclass
-from typing import Any, Optional, Protocol, Type
+from typing import Any, Optional, Protocol, Type, Callable, Dict
 
 from git_sim.core.models import (
     OperationType,
@@ -81,7 +81,7 @@ class SimulationDispatcher:
         """
         command_lower = command.lower().replace("-", "_")
 
-        dispatcher_map = {
+        dispatcher_map: Dict[str, Callable[..., SimulationResult]] = {
             "rebase": self._simulate_rebase,
             "merge": self._simulate_merge,
             "reset": self._simulate_reset,
@@ -89,11 +89,30 @@ class SimulationDispatcher:
             "cherrypick": self._simulate_cherry_pick,
         }
 
+        # Plugin hooks integration
+        from git_sim.plugins.base import get_plugin_manager
+
+        plugin_manager = get_plugin_manager()
+        # Run pre hooks (may mutate kwargs)
+        kwargs = plugin_manager.run_pre_hooks(self.repo, command_lower, **kwargs)
+
+        # Allow override hooks to short-circuit simulation
+        override_result = plugin_manager.run_override_hooks(self.repo, command_lower, **kwargs)
+        if override_result is not None:
+            # Post hooks still run
+            override_result = plugin_manager.run_post_hooks(
+                self.repo, command_lower, override_result
+            )
+            return override_result
+
         handler = dispatcher_map.get(command_lower)
         if handler is None:
             raise ValueError(f"Unknown command: {command}")
 
-        return handler(**kwargs)
+        result = handler(**kwargs)
+        # Run post hooks
+        result = plugin_manager.run_post_hooks(self.repo, command_lower, result)
+        return result
 
     def _simulate_rebase(
         self,
@@ -134,9 +153,7 @@ class SimulationDispatcher:
         """Run merge simulation."""
         from git_sim.simulation.merge import MergeSimulator
 
-        simulator = MergeSimulator(
-            self.repo, source=source, target=target, no_ff=no_ff
-        )
+        simulator = MergeSimulator(self.repo, source=source, target=target, no_ff=no_ff)
         result = simulator.run()
         sim_result = result.to_simulation_result()
         sim_result.warnings.extend(simulator.warnings)
@@ -183,9 +200,7 @@ class SimulationDispatcher:
         """Run cherry-pick simulation."""
         from git_sim.simulation.cherry_pick import CherryPickSimulator
 
-        simulator = CherryPickSimulator(
-            self.repo, commits=commits, target=target
-        )
+        simulator = CherryPickSimulator(self.repo, commits=commits, target=target)
         result = simulator.run()
         sim_result = result.to_simulation_result()
         sim_result.warnings.extend(simulator.warnings)
@@ -239,6 +254,7 @@ class SimulationDispatcher:
         """Parse rebase command arguments."""
         parsed: dict[str, Any] = {"source": "HEAD"}
 
+        positionals: list[str] = []
         i = 0
         while i < len(args):
             arg = args[i]
@@ -246,11 +262,21 @@ class SimulationDispatcher:
                 parsed["onto"] = args[i + 1]
                 i += 2
             elif not arg.startswith("-"):
-                if "onto" not in parsed:
-                    parsed["onto"] = arg
+                positionals.append(arg)
                 i += 1
             else:
                 i += 1
+
+        # Interpret positional arguments:
+        # 1 arg: onto target (source defaults to HEAD)
+        # 2 args: source then onto
+        # >2 args: ignore extras (consistent with simplified parser)
+        if positionals:
+            if len(positionals) == 1:
+                parsed.setdefault("onto", positionals[0])
+            elif len(positionals) >= 2:
+                parsed["source"] = positionals[0]
+                parsed["onto"] = positionals[1]
 
         if "onto" not in parsed:
             raise ValueError("Rebase requires a target branch")
@@ -327,7 +353,7 @@ class SimulationDispatcher:
 
 
 # Convenience function for quick simulations
-def simulate(command: str, **kwargs) -> SimulationResult:
+def simulate(command: str, **kwargs: Any) -> SimulationResult:
     """
     Run a simulation with default repository.
 

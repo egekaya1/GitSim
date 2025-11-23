@@ -35,7 +35,8 @@ def git_repo(temp_dir: Path) -> Generator[Path, None, None]:
     repo_path.mkdir()
 
     # Initialize git repo
-    subprocess.run(["git", "init"], cwd=repo_path, capture_output=True, check=True)
+    # Ensure consistent default branch name across Git versions
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo_path, capture_output=True, check=True)
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
         cwd=repo_path,

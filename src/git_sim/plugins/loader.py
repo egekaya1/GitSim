@@ -162,7 +162,7 @@ class {class_name}(SimulatorPlugin):
         after_graph = before_graph  # Modify as needed
 
         return SimulationResult(
-            operation_type=OperationType.REBASE,  # Or create custom
+            operation_type=OperationType.REBASE,  # Adjust if creating a custom type
             success=True,
             before_graph=before_graph,
             after_graph=after_graph,
@@ -173,7 +173,8 @@ class {class_name}(SimulatorPlugin):
                 danger_level=DangerLevel.LOW,
                 reversible=True,
                 requires_force_push=False,
-                data_loss_risk=False,
+                reasons=["Example simulator plugin created"],
+                suggestions=["Replace placeholder logic with real simulation"],
             ),
         )
 ''',

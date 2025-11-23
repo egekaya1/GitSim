@@ -111,6 +111,18 @@ class HookPlugin(Plugin):
         """Called after simulation. Can modify result."""
         return result
 
+    def override_simulation(
+        self, repo: Repository, command: str, **kwargs: Any
+    ) -> SimulationResult | None:
+        """Optionally perform the entire simulation and return a result.
+
+        If a hook returns a non-None SimulationResult here, the dispatcher
+        will skip the default simulation logic and use the returned result.
+        Useful for short-circuiting or providing alternative simulation engines
+        without implementing a full SimulatorPlugin.
+        """
+        return None
+
 
 @dataclass
 class PluginRegistry:
@@ -181,13 +193,21 @@ class PluginManager:
                 return simulator
         return None
 
-    def run_pre_hooks(
-        self, repo: Repository, command: str, **kwargs: Any
-    ) -> dict[str, Any]:
+    def run_pre_hooks(self, repo: Repository, command: str, **kwargs: Any) -> dict[str, Any]:
         """Run all pre-simulation hooks."""
         for hook in self._registry.hooks:
             kwargs = hook.pre_simulate(repo, command, **kwargs)
         return kwargs
+
+    def run_override_hooks(
+        self, repo: Repository, command: str, **kwargs: Any
+    ) -> SimulationResult | None:
+        """Run override hooks and return first non-None result."""
+        for hook in self._registry.hooks:
+            result = hook.override_simulation(repo, command, **kwargs)
+            if result is not None:
+                return result
+        return None
 
     def run_post_hooks(
         self, repo: Repository, command: str, result: SimulationResult
