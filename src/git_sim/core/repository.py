@@ -40,7 +40,10 @@ class Repository:
     @property
     def head_sha(self) -> str:
         """Get the SHA of HEAD."""
-        return self._repo.head().decode()
+        try:
+            return self._repo.head().decode()
+        except (KeyError, ValueError) as e:
+            raise NotARepositoryError("Repository has no commits yet") from e
 
     @property
     def head_branch(self) -> str | None:

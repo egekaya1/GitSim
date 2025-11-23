@@ -272,8 +272,12 @@ class GitSimApp(App[None]):  # Provide concrete generic parameter for mypy
                 name for name, sha in graph.branch_tips.items() if sha == commit.sha
             ]
 
-            # Check if commit is detached (no children and not a branch tip)
-            is_detached = commit.sha not in has_children and not branch_labels
+            # Check if commit is detached (no children and not a branch tip or HEAD)
+            is_detached = (
+                commit.sha not in has_children
+                and not branch_labels
+                and commit.sha != graph.head_sha
+            )
 
             label_str = f" ({', '.join(branch_labels)})" if branch_labels else ""
             head_marker = " <- HEAD" if commit.sha == graph.head_sha else ""
