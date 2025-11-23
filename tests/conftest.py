@@ -1,11 +1,10 @@
 """Pytest fixtures for git-sim tests."""
 
-import os
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 

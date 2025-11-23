@@ -1,6 +1,5 @@
 """Tests for data models."""
 
-import pytest
 
 from git_sim.core.models import (
     ChangeType,

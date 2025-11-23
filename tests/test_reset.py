@@ -1,9 +1,6 @@
 """Tests for reset simulation."""
 
-import subprocess
 from pathlib import Path
-
-import pytest
 
 from git_sim.core.models import ResetMode
 from git_sim.core.repository import Repository

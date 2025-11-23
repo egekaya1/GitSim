@@ -3,8 +3,6 @@
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from git_sim.core.repository import Repository
 from git_sim.simulation.cherry_pick import CherryPickSimulator
 

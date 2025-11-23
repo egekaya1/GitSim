@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from git_sim.snapshot import SnapshotManager
 from git_sim.core.repository import Repository
+from git_sim.snapshot import SnapshotManager
 
 
 def test_create_and_list_snapshot(git_repo: Path):

@@ -1,12 +1,12 @@
 """Tests for rebase simulation."""
 
+import contextlib
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from git_sim.core.exceptions import RefNotFoundError, SimulationError
-from git_sim.core.models import ConflictSeverity
+from git_sim.core.exceptions import SimulationError
 from git_sim.core.repository import Repository
 from git_sim.simulation.rebase import RebaseSimulator
 
@@ -182,10 +182,8 @@ class TestRebaseSimulatorRun:
         )
 
         # This will produce warnings but not errors
-        try:
-            simulator.run()
-        except SimulationError:
-            pass  # May fail for other reasons
+        with contextlib.suppress(SimulationError):
+            simulator.run()  # May fail for other reasons
 
         # Check warnings were recorded
         assert any("same commit" in w.lower() for w in simulator.warnings), "Expected same commit warning to be preserved"

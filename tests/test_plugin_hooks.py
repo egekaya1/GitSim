@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from git_sim.core.models import (
     CommitGraph,
@@ -19,7 +19,7 @@ from git_sim.simulation.dispatcher import SimulationDispatcher
 class RecordingHook(HookPlugin):
     """Hook plugin that records execution order and can override."""
 
-    def __init__(self, record: List[str], override: bool = False) -> None:
+    def __init__(self, record: list[str], override: bool = False) -> None:
         self._record = record
         self._override = override
 
@@ -72,7 +72,7 @@ class RecordingHook(HookPlugin):
 
 
 def test_hook_order_and_override(branched_repository: Repository) -> None:
-    record: List[str] = []
+    record: list[str] = []
     manager = get_plugin_manager()
     # Ensure clean registry (tests may run multiple times)
     for meta in manager.list_plugins():
@@ -97,7 +97,7 @@ def test_hook_order_and_override(branched_repository: Repository) -> None:
 
 
 def test_hook_no_override_falls_back(branched_repository: Repository) -> None:
-    record: List[str] = []
+    record: list[str] = []
     manager = get_plugin_manager()
     for meta in manager.list_plugins():
         manager.unregister(meta.name)
