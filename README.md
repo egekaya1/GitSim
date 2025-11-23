@@ -36,11 +36,13 @@ GitSim is a sophisticated Git simulation tool that lets you preview the exact ou
 ## ⚡ Quick Start
 
 ```bash
-# Install from PyPI
-pip install gitsimulator
+# Install from PyPI (v1.0.1)
+pipx install gitsimulator
 
-# Simulate a rebase
+# All three commands work identically:
 gitsim rebase main
+git-sim rebase main
+gitsimulator rebase main
 
 # Preview a merge with conflict detection
 gitsim merge feature-branch
@@ -171,18 +173,14 @@ Supported explanations: `rebase`, `merge`, `reset`, `cherry-pick`, `stash`, `tag
 ### From PyPI (Recommended)
 
 ```bash
-# Basic installation
+# Install with pipx (v1.0.1)
+pipx install gitsimulator
+
+# Or with pip
 pip install gitsimulator
-
-# With TUI support (Textual)
-pip install gitsimulator[tui]
-
-# For development
-pip install gitsimulator[dev]
-
-# Everything
-pip install gitsimulator[all]
 ```
+
+**Note**: All three commands work identically: `gitsim`, `git-sim`, and `gitsimulator`
 
 ### From Source
 
@@ -735,17 +733,19 @@ Built with these excellent libraries:
 ## Installation
 
 ```bash
-# From PyPI
-pip install gitsimulator
+# From PyPI (v1.0.1)
+pipx install gitsimulator
 
-# With TUI support
-pip install gitsimulator[tui]
+# Or with pip
+pip install gitsimulator
 
 # For development
 git clone https://github.com/egekaya1/GitSim.git
 cd GitSim
-pip install -e ".[dev]"
+pip install -e .
 ```
+
+**Note**: All three commands work identically: `gitsim`, `git-sim`, and `gitsimulator`
 
 ## Usage
 
