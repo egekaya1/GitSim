@@ -1,7 +1,7 @@
 """Repository wrapper providing a clean read-only API over Dulwich."""
 
+from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Iterator, Optional, Iterable
 
 from dulwich.diff_tree import TreeChange, tree_changes
 from dulwich.objects import Commit, Tree, TreeEntry
@@ -43,7 +43,7 @@ class Repository:
         return self._repo.head().decode()
 
     @property
-    def head_branch(self) -> Optional[str]:
+    def head_branch(self) -> str | None:
         """Get the name of the current branch, or None if detached HEAD."""
         try:
             ref = self._repo.refs.read_ref(b"HEAD")
@@ -58,7 +58,7 @@ class Repository:
         Resolve a reference (branch name, tag, or SHA) to a commit SHA.
 
         Args:
-            ref_or_sha: Branch name, tag name, or commit SHA.
+            ref_or_sha: Branch name, tag name, or commit SHA (full or short).
 
         Returns:
             The resolved SHA as bytes.
@@ -68,7 +68,7 @@ class Repository:
         """
         ref_bytes = ref_or_sha.encode() if isinstance(ref_or_sha, str) else ref_or_sha
 
-        # Try as a direct SHA first
+        # Try as a direct SHA first (full 40-char SHA)
         if len(ref_or_sha) == 40:
             try:
                 obj = self._repo[ref_bytes]
@@ -76,6 +76,26 @@ class Repository:
                     return ref_bytes
             except KeyError:
                 pass
+        
+        # Try as a short SHA (7+ characters)
+        if len(ref_or_sha) >= 7 and all(c in '0123456789abcdef' for c in ref_or_sha.lower()):
+            prefix = ref_or_sha.lower()
+            matches = []
+            for sha in self._repo.object_store:
+                sha_str = sha.decode() if isinstance(sha, bytes) else str(sha)
+                if sha_str.startswith(prefix):
+                    try:
+                        obj = self._repo[sha]
+                        if isinstance(obj, Commit):
+                            matches.append(sha)
+                    except (KeyError, AttributeError):
+                        continue
+            
+            if len(matches) == 1:
+                return matches[0]
+            elif len(matches) > 1:
+                raise RefNotFoundError(f"{ref_or_sha} is ambiguous ({len(matches)} matches)")
+            # If no matches, continue trying other resolution methods
 
         # Try as refs/heads/<branch>
         try:
@@ -196,9 +216,9 @@ class Repository:
     def walk_commits(
         self,
         include: list[str],
-        exclude: Optional[list[str]] = None,
+        exclude: list[str] | None = None,
         order: str = "topo",
-        max_entries: Optional[int] = None,
+        max_entries: int | None = None,
     ) -> Iterator[CommitInfo]:
         """
         Walk commits from include refs, stopping at exclude refs.
@@ -239,7 +259,7 @@ class Repository:
         branches = []
 
         # Dulwich refs container does not expose items(); iterate over keys directly
-        for ref_name in self._repo.refs.keys():
+        for ref_name in self._repo.refs:
             sha = self._repo.refs[ref_name]
             ref_str = ref_name.decode() if isinstance(ref_name, bytes) else ref_name
             sha_str = sha.decode() if isinstance(sha, bytes) else str(sha)
@@ -253,7 +273,7 @@ class Repository:
 
         return branches
 
-    def find_merge_base(self, ref1: str, ref2: str) -> Optional[str]:
+    def find_merge_base(self, ref1: str, ref2: str) -> str | None:
         """
         Find the merge base (common ancestor) between two refs.
 
@@ -398,7 +418,7 @@ class Repository:
         parent = self.get_commit(commit.parent_shas[0])
         return self.get_tree_changes(parent.tree_sha, commit.tree_sha)
 
-    def get_file_content(self, tree_sha: str, path: str) -> Optional[bytes]:
+    def get_file_content(self, tree_sha: str, path: str) -> bytes | None:
         """
         Get the content of a file at a specific tree.
 

@@ -1,6 +1,5 @@
 """Main CLI entry point for git-sim."""
 
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -26,6 +25,9 @@ plugin_app = typer.Typer(help="Manage git-sim plugins")
 app.add_typer(plugin_app, name="plugin")
 
 console = Console()
+
+# Typer argument constants (avoid function calls directly in default parameters per Ruff B008)
+COMMITS_ARG = typer.Argument(..., help="Commits to cherry-pick")
 
 
 def version_callback(value: bool) -> None:
@@ -75,7 +77,7 @@ def status() -> None:
         repo = Repository(".")
     except NotARepositoryError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     console.print(f"[bold]Repository:[/bold] {repo.path}")
     console.print(f"[bold]Current branch:[/bold] {repo.head_branch or 'detached HEAD'}")
@@ -120,10 +122,10 @@ def log(
         graph = repo.build_graph([ref], max_commits=max_count)
     except NotARepositoryError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except RefNotFoundError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     graph_renderer = CommitGraphRenderer(console)
     graph_renderer.render(graph, max_commits=max_count)
@@ -151,10 +153,10 @@ def diff(
         changes = repo.get_commit_changes(commit_info.sha)
     except NotARepositoryError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except RefNotFoundError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     console.print(
         f"[bold]Commit:[/bold] [yellow]{commit_info.short_sha}[/yellow] {commit_info.first_line}"
@@ -249,7 +251,7 @@ def merge(
 
     except GitSimError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============== RESET COMMAND ==============
@@ -344,7 +346,7 @@ def reset(
 
     except GitSimError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============== CHERRY-PICK COMMAND ==============
@@ -352,7 +354,7 @@ def reset(
 
 @app.command(name="cherry-pick")
 def cherry_pick(
-    commits: list[str] = typer.Argument(..., help="Commits to cherry-pick"),
+    commits: list[str] = COMMITS_ARG,
     show_graph: bool = typer.Option(True, "--graph/--no-graph", "-g/-G"),
 ) -> None:
     """
@@ -423,7 +425,7 @@ def cherry_pick(
 
     except GitSimError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============== EXPLAIN COMMAND ==============
@@ -468,7 +470,7 @@ def snapshot_create(
 
     except Exception as e:
         console.print(f"[red]Error creating snapshot: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @snapshot_app.command("list")
@@ -505,7 +507,7 @@ def snapshot_list() -> None:
 
     except Exception as e:
         console.print(f"[red]Error listing snapshots: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @snapshot_app.command("restore")
@@ -529,7 +531,7 @@ def snapshot_restore(
 
     except Exception as e:
         console.print(f"[red]Error restoring snapshot: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @snapshot_app.command("delete")
@@ -549,7 +551,7 @@ def snapshot_delete(
 
     except Exception as e:
         console.print(f"[red]Error deleting snapshot: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============== SIMULATE COMMAND (UNIFIED) ==============
@@ -618,10 +620,10 @@ def sim(
 
     except ValueError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============== PLUGIN COMMANDS ==============
@@ -630,7 +632,7 @@ def sim(
 @plugin_app.command("list")
 def plugin_list() -> None:
     """List all available and loaded plugins."""
-    from git_sim.plugins import PluginType, discover_plugins
+    from git_sim.plugins import discover_plugins
     from git_sim.plugins.base import get_plugin_manager
 
     # Show discovered plugins
@@ -688,12 +690,12 @@ def plugin_new(
         console.print("\nNext steps:")
         console.print("  1. Implement your plugin logic")
         console.print("  2. Add entry point to pyproject.toml:")
-        console.print(f'     [project.entry-points."git_sim.plugins"]')
+        console.print('     [project.entry-points."git_sim.plugins"]')
         console.print(f'     {name} = "your_package:{name.title().replace("-", "")}Plugin"')
         console.print("  3. Install your package: pip install -e .")
     except Exception as e:
         console.print(f"[red]Error creating plugin: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @plugin_app.command("load")
@@ -729,12 +731,12 @@ def tui() -> None:
         from git_sim.tui import run_tui
 
         run_tui()
-    except ImportError:
+    except ImportError as e:
         console.print(
             "[red]TUI dependencies not installed.[/red]\n"
             "Install with: [bold]pip install git-sim[tui][/bold]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 if __name__ == "__main__":

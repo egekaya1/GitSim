@@ -1,6 +1,5 @@
 """Commit graph rendering for git-sim CLI."""
 
-from typing import Optional, Dict, List, Set, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
@@ -18,7 +17,7 @@ class CommitGraphRenderer:
     """
 
     # Graph glyphs
-    GLYPHS: Dict[str, str] = {
+    GLYPHS: dict[str, str] = {
         "commit": "*",
         "vertical": "|",
         "horizontal": "-",
@@ -29,7 +28,7 @@ class CommitGraphRenderer:
     }
 
     # Colors for branches (cycles through these)
-    BRANCH_COLORS: List[str] = [
+    BRANCH_COLORS: list[str] = [
         "bright_green",
         "bright_yellow",
         "bright_blue",
@@ -38,7 +37,7 @@ class CommitGraphRenderer:
         "bright_red",
     ]
 
-    def __init__(self, console: Optional[Console] = None):
+    def __init__(self, console: Console | None = None):
         """
         Initialize the graph renderer.
 
@@ -50,9 +49,9 @@ class CommitGraphRenderer:
     def render(
         self,
         graph: CommitGraph,
-        highlight_shas: Optional[Set[str]] = None,
+        highlight_shas: set[str] | None = None,
         max_commits: int = 30,
-        title: Optional[str] = None,
+        title: str | None = None,
     ) -> None:
         """
         Render the commit graph to the console.
@@ -66,14 +65,14 @@ class CommitGraphRenderer:
         highlight_shas = highlight_shas or set()
 
         # Get topologically sorted commits
-        sorted_shas: List[str] = self._topological_sort(graph)[:max_commits]
+        sorted_shas: list[str] = self._topological_sort(graph)[:max_commits]
 
         if not sorted_shas:
             self.console.print("[dim]No commits to display[/dim]")
             return
 
         # Build the graph lines
-        lines: List[Text] = self._build_graph_lines(graph, sorted_shas, highlight_shas)
+        lines: list[Text] = self._build_graph_lines(graph, sorted_shas, highlight_shas)
 
         # Create output text
         output = Text()
@@ -91,8 +90,8 @@ class CommitGraphRenderer:
         self,
         before: CommitGraph,
         after: CommitGraph,
-        highlight_before: Optional[Set[str]] = None,
-        highlight_after: Optional[Set[str]] = None,
+        highlight_before: set[str] | None = None,
+        highlight_after: set[str] | None = None,
         max_commits: int = 20,
     ) -> None:
         """
@@ -120,7 +119,7 @@ class CommitGraphRenderer:
             title="[bold]After (Simulated)[/bold]",
         )
 
-    def _topological_sort(self, graph: CommitGraph) -> List[str]:
+    def _topological_sort(self, graph: CommitGraph) -> list[str]:
         """
         Sort commits so that tips appear first and ancestors later.
 
@@ -130,8 +129,8 @@ class CommitGraphRenderer:
         - process by newest timestamp first for stability
         """
         # Initialize indegree counts and adjacency (child -> parents list)
-        indegree: Dict[str, int] = {sha: 0 for sha in graph.commits}
-        adjacency: Dict[str, List[str]] = {sha: [] for sha in graph.commits}
+        indegree: dict[str, int] = dict.fromkeys(graph.commits, 0)
+        adjacency: dict[str, list[str]] = {sha: [] for sha in graph.commits}
 
         for child_sha, parent_sha in graph.edges:
             if parent_sha in indegree:
@@ -140,15 +139,15 @@ class CommitGraphRenderer:
                 adjacency[child_sha].append(parent_sha)
 
         # Queue of tips (no children referencing them)
-        tips: List[str] = [sha for sha, deg in indegree.items() if deg == 0]
+        tips: list[str] = [sha for sha, deg in indegree.items() if deg == 0]
         # Sort newest first
         tips.sort(key=lambda sha: graph.commits[sha].timestamp, reverse=True)
 
-        result: List[str] = []
+        result: list[str] = []
         import heapq
 
         # Use heap with negative timestamp for max-heap behavior
-        heap: List[Tuple[int, str]] = [(-graph.commits[sha].timestamp, sha) for sha in tips]
+        heap: list[tuple[int, str]] = [(-graph.commits[sha].timestamp, sha) for sha in tips]
         heapq.heapify(heap)
 
         while heap:
@@ -161,7 +160,7 @@ class CommitGraphRenderer:
 
         # Fallback: include any commits not reached (shouldn't happen in proper DAG)
         if len(result) < len(graph.commits):
-            remaining: List[str] = [sha for sha in graph.commits if sha not in result]
+            remaining: list[str] = [sha for sha in graph.commits if sha not in result]
             # Append remaining sorted by timestamp desc
             remaining.sort(key=lambda sha: graph.commits[sha].timestamp, reverse=True)
             result.extend(remaining)
@@ -171,23 +170,23 @@ class CommitGraphRenderer:
     def _build_graph_lines(
         self,
         graph: CommitGraph,
-        sorted_shas: List[str],
-        highlight_shas: Set[str],
-    ) -> List[Text]:
+        sorted_shas: list[str],
+        highlight_shas: set[str],
+    ) -> list[Text]:
         """
         Build the graph lines for rendering.
 
         Returns list of Rich Text objects, one per commit.
         """
-        lines: List[Text] = []
+        lines: list[Text] = []
 
         # Track which column each "thread" is in
         # A thread is a branch of commits we're currently drawing
-        columns: List[Optional[str]] = []  # column -> sha being tracked
+        columns: list[str | None] = []  # column -> sha being tracked
 
         # Assign colors to branches
-        branch_colors: Dict[str, str] = {}
-        for i, (branch, sha) in enumerate(graph.branch_tips.items()):
+        branch_colors: dict[str, str] = {}
+        for i, (branch, _sha) in enumerate(graph.branch_tips.items()):
             branch_colors[branch] = self.BRANCH_COLORS[i % len(self.BRANCH_COLORS)]
 
         for sha in sorted_shas:
@@ -209,10 +208,10 @@ class CommitGraphRenderer:
     def _build_commit_line(
         self,
         commit: CommitInfo,
-        columns: List[Optional[str]],
+        columns: list[str | None],
         graph: CommitGraph,
-        highlight_shas: Set[str],
-        branch_colors: Dict[str, str],
+        highlight_shas: set[str],
+        branch_colors: dict[str, str],
     ) -> Text:
         """Build a single line for a commit."""
         line = Text()
@@ -242,7 +241,7 @@ class CommitGraphRenderer:
             message += "..."
 
         # Find branch labels for this commit
-        labels: List[str] = []
+        labels: list[str] = []
         for branch, tip_sha in graph.branch_tips.items():
             if tip_sha == sha:
                 color = branch_colors.get(branch, "cyan")
@@ -269,7 +268,7 @@ class CommitGraphRenderer:
     def _find_column(
         self,
         sha: str,
-        columns: List[Optional[str]],
+        columns: list[str | None],
         commit: CommitInfo,
     ) -> int:
         """Find or create a column for a commit."""
@@ -298,7 +297,7 @@ class CommitGraphRenderer:
         self,
         sha: str,
         commit: CommitInfo,
-        columns: List[Optional[str]],
+        columns: list[str | None],
     ) -> None:
         """Update column tracking after processing a commit."""
         # Find the column for this commit
@@ -323,9 +322,9 @@ class CommitGraphRenderer:
 
 
 def render_simple_graph(
-    commits: List[CommitInfo],
-    highlight_shas: Optional[Set[str]] = None,
-    console: Optional[Console] = None,
+    commits: list[CommitInfo],
+    highlight_shas: set[str] | None = None,
+    console: Console | None = None,
 ) -> None:
     """
     Render a simple linear commit graph.

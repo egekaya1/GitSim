@@ -1,7 +1,6 @@
 """Cherry-pick simulation engine."""
 
 import hashlib
-from typing import Optional, List
 
 from dulwich.repo import Repo as DulwichRepo
 
@@ -10,9 +9,8 @@ from git_sim.core.models import (
     CherryPickSimulation,
     CommitGraph,
     CommitInfo,
-    OperationStep,
-    PotentialConflict,
     FileChange,
+    OperationStep,
 )
 from git_sim.core.repository import Repository
 from git_sim.simulation.base import BaseSimulator
@@ -49,8 +47,8 @@ class CherryPickSimulator(BaseSimulator[CherryPickSimulation]):
         self.commit_refs = commits
         self.target = target
         self._conflict_detector = ConflictDetector()
-        self._dulwich_repo: Optional[DulwichRepo] = None
-        self._diff_analyzer: Optional[DiffAnalyzer] = None
+        self._dulwich_repo: DulwichRepo | None = None
+        self._diff_analyzer: DiffAnalyzer | None = None
 
     def _get_dulwich_repo(self) -> DulwichRepo:
         """Get the underlying Dulwich repo."""

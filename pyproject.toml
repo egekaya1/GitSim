@@ -1,24 +1,51 @@
 [project]
-name = "git-sim"
-version = "0.1.0"
-description = "Git simulation and visualization engine - dry run dangerous Git commands with visual feedback"
+name = "gitsimulator"
+version = "1.0.0"
+description = "Git simulation and visualization engine - dry run dangerous Git commands with visual feedback before executing"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "GitSim Contributors" }]
-keywords = ["git", "simulation", "rebase", "visualization", "cli"]
+authors = [
+    { name = "GitSim Contributors", email = "egekaya1@users.noreply.github.com" }
+]
+maintainers = [
+    { name = "Ege Kaya", email = "egekaya1@users.noreply.github.com" }
+]
+keywords = [
+    "git",
+    "simulation",
+    "rebase",
+    "merge",
+    "visualization",
+    "cli",
+    "conflict-detection",
+    "safety",
+    "education",
+    "developer-tools",
+    "version-control",
+    "dulwich",
+]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Software Development :: Version Control :: Git",
-    "Framework :: Textual",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Education",
+    "Topic :: Utilities",
     "Typing :: Typed",
 ]
 dependencies = [
@@ -28,10 +55,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/egekaya1/GitSim"
-Repository = "https://github.com/egekaya1/GitSim"
-Issues = "https://github.com/egekaya1/GitSim/issues"
-Documentation = "https://github.com/egekaya1/GitSim#readme"
+Homepage = "https://github.com/egekaya1/GitSimulator"
+Repository = "https://github.com/egekaya1/GitSimulator"
+Issues = "https://github.com/egekaya1/GitSimulator/issues"
+Documentation = "https://github.com/egekaya1/GitSimulator#readme"
 
 [project.optional-dependencies]
 dev = [
@@ -44,12 +71,14 @@ tui = [
     "textual>=0.40.0",
 ]
 all = [
-    "git-sim[dev,tui]",
+    "gitsimulator[dev,tui]",
 ]
 
 [project.scripts]
 git-sim = "git_sim.cli.main:app"
 gitsim = "git_sim.cli.main:app"
+gitsimulator = "git_sim.cli.main:app"
+
 
 
 # Plugin entry points - external plugins register here

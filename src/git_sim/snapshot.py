@@ -2,13 +2,11 @@
 
 import hashlib
 import json
-import shutil
 import subprocess
-import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 from git_sim.core.repository import Repository
 
@@ -21,7 +19,7 @@ class Snapshot:
     name: str
     created_at: str
     head_sha: str
-    head_branch: Optional[str]
+    head_branch: str | None
     description: str = ""
     tags: list[str] = field(default_factory=list)
 
@@ -96,7 +94,7 @@ class SnapshotManager:
         self,
         name: str,
         description: str = "",
-        tags: Optional[list[str]] = None,
+        tags: list[str] | None = None,
     ) -> Snapshot:
         """
         Create a new snapshot of the current repository state.
@@ -153,7 +151,7 @@ class SnapshotManager:
             check=True,
         )
 
-    def list(self, tag: Optional[str] = None) -> list[Snapshot]:
+    def list(self, tag: str | None = None) -> list[Snapshot]:
         """
         List all snapshots.
 
@@ -170,7 +168,7 @@ class SnapshotManager:
 
         return sorted(snapshots, key=lambda s: s.created_at, reverse=True)
 
-    def get(self, snapshot_id: str) -> Optional[Snapshot]:
+    def get(self, snapshot_id: str) -> Snapshot | None:
         """
         Get a snapshot by ID.
 
@@ -328,7 +326,7 @@ class SnapshotManager:
     def create_from_reflog(
         self,
         reflog_entry: int = 0,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> Snapshot:
         """
         Create a snapshot from a reflog entry.
@@ -347,7 +345,7 @@ class SnapshotManager:
             capture_output=True,
             check=True,
         )
-        sha = result.stdout.decode().strip()
+        _sha = result.stdout.decode().strip()  # Value not currently used; retained for potential future validation
 
         # Get the reflog message
         result = subprocess.run(

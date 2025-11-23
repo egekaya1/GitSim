@@ -1,7 +1,6 @@
 """Merge simulation engine."""
 
 import hashlib
-from typing import Optional
 
 from git_sim.core.models import (
     CommitGraph,

@@ -1,10 +1,8 @@
 """Educational explanations for Git operations."""
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 
@@ -182,7 +180,7 @@ EXPLANATIONS = {
 class ExplainRenderer:
     """Renders explanations for Git operations."""
 
-    def __init__(self, console: Optional[Console] = None):
+    def __init__(self, console: Console | None = None):
         """Initialize the explain renderer."""
         self.console = console or Console()
 
@@ -283,7 +281,7 @@ class ExplainRenderer:
                 self.console.print(f"  ✓ {suggestion}")
 
 
-def explain_command(command: str, console: Optional[Console] = None) -> None:
+def explain_command(command: str, console: Console | None = None) -> None:
     """
     Display explanation for a Git command.
 

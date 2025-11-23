@@ -1,15 +1,14 @@
 """Unified command simulation dispatcher."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Optional, Protocol, Type, Callable, Dict
+from typing import Any, Protocol
 
 from git_sim.core.models import (
     OperationType,
-    ResetMode,
     SimulationResult,
 )
 from git_sim.core.repository import Repository
-from git_sim.simulation.base import BaseSimulator
 
 
 class SimulatorProtocol(Protocol):
@@ -45,7 +44,7 @@ class SimulationDispatcher:
     with consistent error handling and result formatting.
     """
 
-    def __init__(self, repo: Optional[Repository] = None):
+    def __init__(self, repo: Repository | None = None):
         """
         Initialize the dispatcher.
 
@@ -81,7 +80,7 @@ class SimulationDispatcher:
         """
         command_lower = command.lower().replace("-", "_")
 
-        dispatcher_map: Dict[str, Callable[..., SimulationResult]] = {
+        dispatcher_map: dict[str, Callable[..., SimulationResult]] = {
             "rebase": self._simulate_rebase,
             "merge": self._simulate_merge,
             "reset": self._simulate_reset,

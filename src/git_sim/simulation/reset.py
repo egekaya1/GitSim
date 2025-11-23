@@ -1,6 +1,5 @@
 """Reset simulation engine."""
 
-from typing import Optional
 
 from git_sim.core.models import (
     CommitGraph,
@@ -145,7 +144,7 @@ class ResetSimulator(BaseSimulator[ResetSimulation]):
     def _count_commits_between(self, base_sha: str, head_sha: str) -> int:
         """Count commits from head back to base (exclusive)."""
         count = 0
-        for commit in self.repo.walk_commits(include=[head_sha], exclude=[base_sha]):
+        for _commit in self.repo.walk_commits(include=[head_sha], exclude=[base_sha]):
             count += 1
         return count
 

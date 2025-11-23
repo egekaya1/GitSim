@@ -1,6 +1,5 @@
 """Diff rendering for git-sim CLI."""
 
-from typing import Optional
 
 from rich.console import Console, RenderableType
 from rich.panel import Panel
@@ -23,7 +22,7 @@ class DiffRenderer:
         ChangeType.COPY: ("cyan", "C", "copied"),
     }
 
-    def __init__(self, console: Optional[Console] = None):
+    def __init__(self, console: Console | None = None):
         """
         Initialize the diff renderer.
 

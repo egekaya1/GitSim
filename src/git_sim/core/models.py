@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Optional
 
 
 class ChangeType(Enum):
@@ -58,7 +57,7 @@ class BranchInfo:
     name: str
     head_sha: str
     is_remote: bool = False
-    upstream: Optional[str] = None
+    upstream: str | None = None
 
 
 @dataclass
@@ -89,11 +88,11 @@ class FileChange:
 
     path: str
     change_type: ChangeType
-    old_path: Optional[str] = None  # For renames/copies
-    old_mode: Optional[int] = None
-    new_mode: Optional[int] = None
-    old_sha: Optional[str] = None
-    new_sha: Optional[str] = None
+    old_path: str | None = None  # For renames/copies
+    old_mode: int | None = None
+    new_mode: int | None = None
+    old_sha: str | None = None
+    new_sha: str | None = None
     additions: int = 0
     deletions: int = 0
     hunks: list[DiffHunk] = field(default_factory=list)
@@ -109,7 +108,7 @@ class CommitDiff:
     """Diff between a commit and its parent."""
 
     commit_sha: str
-    parent_sha: Optional[str]
+    parent_sha: str | None
     file_changes: list[FileChange] = field(default_factory=list)
 
     @property
@@ -128,8 +127,8 @@ class PotentialConflict:
     path: str
     severity: ConflictSeverity
     description: str
-    our_change: Optional[FileChange] = None
-    their_change: Optional[FileChange] = None
+    our_change: FileChange | None = None
+    their_change: FileChange | None = None
     overlapping_ranges: list[tuple[tuple[int, int], tuple[int, int]]] = field(default_factory=list)
 
     @property
@@ -145,7 +144,7 @@ class RebaseStep:
     original_sha: str
     commit_info: CommitInfo
     action: str = "pick"  # 'pick', 'squash', 'fixup', 'reword', 'drop'
-    new_sha: Optional[str] = None  # Simulated new SHA after rebase
+    new_sha: str | None = None  # Simulated new SHA after rebase
     conflicts: list[PotentialConflict] = field(default_factory=list)
     will_be_skipped: bool = False  # True if patch-id matches existing commit
 
@@ -163,7 +162,7 @@ class CommitGraph:
     edges: list[tuple[str, str]] = field(default_factory=list)  # (child, parent) pairs
     branch_tips: dict[str, str] = field(default_factory=dict)  # branch_name -> sha
     head_sha: str = ""
-    head_branch: Optional[str] = None
+    head_branch: str | None = None
 
     def add_commit(self, commit: CommitInfo) -> None:
         """Add a commit to the graph."""
@@ -247,7 +246,7 @@ class SimulationResult:
     conflicts: list[PotentialConflict] = field(default_factory=list)
     changed_files: list[FileChange] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
-    safety_info: Optional[SafetyInfo] = None
+    safety_info: SafetyInfo | None = None
 
     # Operation-specific details
     commits_affected: list[CommitInfo] = field(default_factory=list)
@@ -285,7 +284,7 @@ class OperationStep:
 
     step_number: int
     action: str  # 'pick', 'merge', 'reset', etc.
-    commit_info: Optional[CommitInfo] = None
+    commit_info: CommitInfo | None = None
     original_sha: str = ""
     new_sha: str = ""
     conflicts: list[PotentialConflict] = field(default_factory=list)

@@ -1,9 +1,10 @@
 """Base classes for git-sim plugin system."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable
+from typing import Any
 
 from git_sim.core.models import SimulationResult
 from git_sim.core.repository import Repository
@@ -39,13 +40,21 @@ class Plugin(ABC):
         """Return plugin metadata."""
         ...
 
+    @abstractmethod
     def initialize(self, config: dict[str, Any] | None = None) -> None:
-        """Initialize the plugin with optional configuration."""
-        pass
+        """Initialize the plugin with optional configuration.
 
+        Subclasses must implement if they require setup.
+        """
+        ...
+
+    @abstractmethod
     def cleanup(self) -> None:
-        """Cleanup when plugin is unloaded."""
-        pass
+        """Cleanup when plugin is unloaded.
+
+        Subclasses must implement any teardown logic.
+        """
+        ...
 
 
 class SimulatorPlugin(Plugin):

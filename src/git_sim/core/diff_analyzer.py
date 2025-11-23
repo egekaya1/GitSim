@@ -3,7 +3,7 @@
 import hashlib
 import io
 import re
-from typing import Optional, Match, Any, List, Set, Pattern
+from re import Match, Pattern
 
 from dulwich.objects import Blob, Commit
 from dulwich.patch import write_tree_diff
@@ -58,10 +58,7 @@ class DiffAnalyzer:
         if commit.parents:
             parent_sha = commit.parents[0].decode()
             parent_obj = self._repo[commit.parents[0]]
-            if isinstance(parent_obj, Commit):
-                parent_tree = parent_obj.tree
-            else:
-                parent_tree = None
+            parent_tree = parent_obj.tree if isinstance(parent_obj, Commit) else None
         else:
             parent_tree = None
 
@@ -97,7 +94,7 @@ class DiffAnalyzer:
             line = lines[i]
 
             # Look for diff header
-            match: Optional[Match[str]] = self.DIFF_HEADER_RE.match(line)
+            match: Match[str] | None = self.DIFF_HEADER_RE.match(line)
             if match:
                 old_path, new_path = match.groups()
                 fc = self._parse_single_file_diff(lines, i, old_path, new_path)
@@ -115,7 +112,7 @@ class DiffAnalyzer:
 
     def _parse_single_file_diff(
         self, lines: list[str], start_idx: int, old_path: str, new_path: str
-    ) -> Optional[FileChange]:
+    ) -> FileChange | None:
         """Parse a single file's diff section."""
         from git_sim.core.models import ChangeType
 
@@ -136,7 +133,7 @@ class DiffAnalyzer:
                 break
 
             # Parse index line
-            idx_match: Optional[Match[str]] = self.INDEX_RE.match(line)
+            idx_match: Match[str] | None = self.INDEX_RE.match(line)
             if idx_match:
                 old_sha, new_sha = idx_match.groups()
                 i += 1
@@ -157,7 +154,7 @@ class DiffAnalyzer:
                 continue
 
             # Parse hunk header
-            hunk_match: Optional[Match[str]] = self.HUNK_HEADER_RE.match(line)
+            hunk_match: Match[str] | None = self.HUNK_HEADER_RE.match(line)
             if hunk_match:
                 hunk, hunk_additions, hunk_deletions, end_i = self._parse_hunk(lines, i, hunk_match)
                 hunks.append(hunk)
@@ -322,7 +319,7 @@ class DiffAnalyzer:
 
         return b"\n".join(normalized_lines)
 
-    def get_file_lines(self, tree_sha: str, path: str) -> Optional[list[str]]:
+    def get_file_lines(self, tree_sha: str, path: str) -> list[str] | None:
         """
         Get the lines of a file at a specific tree.
 
@@ -390,8 +387,8 @@ class DiffAnalyzer:
         return patch_ids
 
 
-# Type hint for circular import
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
+# Type hint for circular import
+if TYPE_CHECKING:  # noqa: E402
     from git_sim.core.repository import Repository

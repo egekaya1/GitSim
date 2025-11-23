@@ -1,6 +1,5 @@
 """Conflict rendering for git-sim CLI."""
 
-from typing import Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -20,7 +19,7 @@ class ConflictRenderer:
         ConflictSeverity.NONE: ("green", "✓ ", "NONE"),
     }
 
-    def __init__(self, console: Optional[Console] = None):
+    def __init__(self, console: Console | None = None):
         """
         Initialize the conflict renderer.
 
@@ -56,7 +55,7 @@ class ConflictRenderer:
 
         # Add difficulty estimate
         difficulty = self._conflict_detector.estimate_conflict_difficulty(conflict)
-        content.append(f"\nResolution difficulty: ", style="dim")
+        content.append("\nResolution difficulty: ", style="dim")
         content.append(difficulty, style="italic")
 
         panel = Panel(

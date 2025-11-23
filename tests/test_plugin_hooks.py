@@ -32,6 +32,14 @@ class RecordingHook(HookPlugin):
             plugin_type=PluginType.HOOK,
         )
 
+    def initialize(self) -> None:  # type: ignore[override]
+        """Initialize the plugin."""
+        pass
+
+    def cleanup(self) -> None:  # type: ignore[override]
+        """Clean up plugin resources."""
+        pass
+
     def pre_simulate(self, repo: Repository, command: str, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
         self._record.append(f"pre:{command}")
         # Inject a marker into kwargs

@@ -1,6 +1,5 @@
 """Conflict detection heuristics for git-sim."""
 
-from typing import Optional
 
 from git_sim.core.models import (
     ChangeType,
@@ -84,7 +83,7 @@ class ConflictDetector:
         path: str,
         our_fc: FileChange,
         their_fc: FileChange,
-    ) -> Optional[PotentialConflict]:
+    ) -> PotentialConflict | None:
         """
         Analyze if two changes to the same file will conflict.
 

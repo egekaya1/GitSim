@@ -1,6 +1,5 @@
 """Rebase command for git-sim CLI."""
 
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -11,9 +10,9 @@ from rich.table import Table
 from git_sim.cli.formatters.conflict import ConflictRenderer
 from git_sim.cli.formatters.graph import CommitGraphRenderer
 from git_sim.core.exceptions import GitSimError, RefNotFoundError
+from git_sim.core.models import RebaseSimulation
 from git_sim.core.repository import Repository
 from git_sim.simulation.rebase import RebaseSimulator
-from git_sim.core.models import RebaseSimulation
 
 console = Console()
 
@@ -143,10 +142,10 @@ def rebase_command(
 
     except RefNotFoundError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except GitSimError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def _render_summary(result: RebaseSimulation, console: Console) -> None:

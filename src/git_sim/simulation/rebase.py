@@ -1,7 +1,6 @@
 """Rebase simulation engine."""
 
 import hashlib
-from typing import Optional
 
 from dulwich.repo import Repo as DulwichRepo
 
@@ -49,8 +48,8 @@ class RebaseSimulator(BaseSimulator[RebaseSimulation]):
         super().__init__(repo)
         self.source = source
         self.onto = onto
-        self._dulwich_repo: Optional[DulwichRepo] = None
-        self._diff_analyzer: Optional[DiffAnalyzer] = None
+        self._dulwich_repo: DulwichRepo | None = None
+        self._diff_analyzer: DiffAnalyzer | None = None
         self._conflict_detector = ConflictDetector()
 
     def _get_dulwich_repo(self) -> DulwichRepo:

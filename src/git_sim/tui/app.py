@@ -4,7 +4,7 @@ from typing import Any
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal
 from textual.widgets import (
     Button,
     Footer,
@@ -13,13 +13,10 @@ from textual.widgets import (
     Label,
     ListItem,
     ListView,
-    Markdown,
     Static,
-    TabbedContent,
-    TabPane,
 )
 
-from git_sim.core.models import OperationType, SimulationResult, CommitGraph
+from git_sim.core.models import CommitGraph, SimulationResult
 from git_sim.core.repository import Repository
 from git_sim.simulation.dispatcher import SimulationDispatcher
 
@@ -261,13 +258,11 @@ class GitSimApp(App[None]):  # Provide concrete generic parameter for mypy
         """Format commit graph for display."""
         lines: list[str] = []
         # Simple topological display
-        sorted_commits: list[CommitGraph.commits.__class__] = sorted(  # type: ignore[misc]
-            graph.commits.values(),
-            key=lambda c: c.timestamp,
-            reverse=True,
+        sorted_commits = sorted(
+            graph.commits.values(), key=lambda c: c.timestamp, reverse=True
         )[:15]
 
-        for commit in sorted_commits:  # type: ignore[assignment]
+        for commit in sorted_commits:
             branch_labels: list[str] = [
                 name for name, sha in graph.branch_tips.items() if sha == commit.sha
             ]
@@ -307,6 +302,14 @@ class GitSimApp(App[None]):  # Provide concrete generic parameter for mypy
             "Commands: rebase <branch>, merge <branch>, reset [--hard|--soft] <ref>, cherry-pick <commits>",
             severity="information",
         )
+
+    # Headless helper for tests (avoids full Textual event loop)
+    def headless_simulate(self, command: str) -> SimulationResult:
+        """Run a simulation without relying on mounted widgets.
+
+        Used in smoke tests to validate dispatcher integration.
+        """
+        return self.dispatcher.run_from_string(command)
 
 
 def run_tui(repo_path: str = ".") -> None:
